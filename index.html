@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- 影なしの３個の物体がぐるぐる回っているかつ視点は自分で動かせる -->
+<meta charset="UTF-8">
+<title>CG index</title>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<style type="text/css">
+  .caption{
+    /* margin:0; padding:0; */
+    padding: 100px;
+    /* margin-left: 5%; */
+  }
+  .media{
+    margin: 15px;
+  }
+  img{
+    height: 200px;
+  }
+</style> 
+</head>
+  
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="index.html">Home <span class="sr-only">(current)</span></a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="sample5.html">作品1</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="sample6.html">作品2</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="sample7.html">作品3</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+  <div id="caption">
+    <p>※ Chromeでは動作確認済みですが、safari・Firefoxでは作品1,3はうまく動かないことがあります。</p>
+  </div>
+
+  <div class="media">
+    <img class="d-flex align-self-start mr-3" src="imgs/sample1.png" alt="Generic placeholder image">
+    <div class="media-body">
+      <h5 class="mt-0"><a href = sample5.html>作品１</a></h5>
+      波と夜空のCG。乱数で大量に星を配置し、sin関数で波を表現しました。<br>
+      3分ぐらい見続けると心が癒されて眠くなります。
+    </div>
+  </div>
+  <div class="media">
+    <img class="d-flex align-self-start mr-3" src="imgs/sample2.png" alt="Generic placeholder image">
+    <div class="media-body">
+      <h5 class="mt-0"><a href = sample6.html>作品２</a></h5>
+      鏡面のような表面をしたひし形の物体に、様々な角度から３色の光を当てました。<br>
+      星の大きさや光の色の数もこだわって表現しています。<br>
+      床に反射した光が作り出す色の混ざり合いが綺麗です。
+    </div>
+  </div>
+  <div class="media">
+    <img class="d-flex align-self-start mr-3" src="imgs/sample3.png" alt="Generic placeholder image">
+    <div class="media-body">
+      <h5 class="mt-0"><a href = sample7.html>作品３</a></h5>
+      物理っぽいCGも作成したかったため、ただボールが自由落下するCGを作成しました。<br>
+      平面を回転させて壁も作ってみました。<br>
+      視点は動かすことができます。<br>
+      RESETボタンでもう一度ボールを落とすこともできます。<br>
+      しかし、だんだん高さが上がっていきます。
+    </div>
+  </div>
+  <div class="media">
+    <img class="d-flex align-self-start mr-3" src="imgs/botsu.png" alt="Generic placeholder image">
+    <div class="media-body">
+      <h5 class="mt-0"><a href = sample1.html>ボツ作品</a></h5>
+      これはボツです。<br>
+      最初にRunge-kutta法で自由落下をさせようと思い<br>
+      頑張って変数を変えていたところ、変な動きをするようになりました。
+    </div>
+  </div>
+</body>
+</html>

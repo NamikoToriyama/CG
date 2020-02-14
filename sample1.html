@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Sample Test</title>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<script src="http://www.natural-science.or.jp/javascript/three_r56.js"></script>
+<script src="http://www.natural-science.or.jp/javascript/raf.js"></script>
+<link rel="stylesheet" href="css/sample.css">
+
+<style type="text/css">
+div#canvas-frame{
+  border: none;
+  cursor: pointer;
+  width: 900px;
+  height: 900px;
+  background-color: #EEEEEE;
+}
+</style>
+<script>
+  var g = 9.8;   //重力加速度
+	var t = 0;     //時刻
+	var dt = 0.001; //時間刻み
+  var skip = 500; //計算回数
+  var Sphere = function(x,y,z,vx,vy,vz){  
+		this.x = x;   this.y  = y;   this.z = z;
+		this.vx = vx;   this.vy  = vy;   this.vz = vz;
+	};
+  var sphere = new Sphere(0, 0, 300, 0, 0, 0);
+  
+  var renderer;
+  function initThree() {
+    width = window.innerWidth;
+    height = window.innerHeight - document.getElementById("navbar").clientHeight;
+    renderer = new THREE.WebGLRenderer({antialias: true}); // ThreeJSのrenderを呼び出し
+    renderer.setSize(width, height); // renderのサイズを設定する
+    document.getElementById('canvas-frame').appendChild(renderer.domElement);
+    renderer.setClearColorHex(0xFFFFFF, 1.0); // 背景の色を設定
+    renderer.shadowMapEnabled = true; // renderが影をつけれるようにする
+  }
+
+  // カメラの位置
+  var camera;
+  function initCamera() {  
+    camera = new THREE.PerspectiveCamera( 45 , width / height , 1 , 10000 );// 透視投影的な
+    camera.position.x = 1000;
+    camera.position.y = 100;
+    camera.position.z = 50;
+    camera.up.x = 0;
+    camera.up.y = 0;
+    camera.up.z = 1;
+    camera.lookAt( {x:0, y:0, z:0 } );
+  }
+  var scene;
+  function initScene() {    
+    scene = new THREE.Scene();
+  }
+  var light;
+  function initLight() {  
+    light = new THREE.DirectionalLight(0xFFFFFF, 1.0, 0);// 光の色
+    light.position.set( 0, 0, 500 ); // 光源の座標、 z軸をまっすぐにするとまっすぐに影ができる
+    light.castShadow = true;    
+    scene.add(light);
+  }
+
+  function initObject(){   
+    sphere.object = new THREE.Mesh(
+         new THREE.SphereGeometry(50,50,50),                //形状の設定
+         new THREE.MeshLambertMaterial({color: 0xff00ff}) //材質の設定
+    );
+    scene.add(sphere.object);
+    sphere.object.position.set(0,0,400);
+    sphere.object.castShadow = true;
+
+    //床の描画
+		var yuka_n = 10, yuka_w = 50;//床の個数とサイズ
+		for(var i=-yuka_n; i<=yuka_n ; i++){
+			for(var j=-yuka_n; j<=yuka_n ; j++){
+				if((i+j)%2==0) var plane = new THREE.Mesh(
+							new THREE.PlaneGeometry(yuka_w, yuka_w, 5, 5), 
+							new THREE.MeshLambertMaterial({color: 0x999999, ambient:0x050505}));
+				else var plane = new THREE.Mesh(
+							new THREE.PlaneGeometry(yuka_w, yuka_w, 5, 5), 
+							new THREE.MeshLambertMaterial({color: 0x4d4d4d, ambient:0x050505}));
+				plane.position.x = j*yuka_w;
+				plane.position.y = i*yuka_w;
+				plane.receiveShadow = true;
+				scene.add(plane);
+			}
+    }
+  }
+  // 回転をするように設定する
+  var t=0;
+  function loop() {   
+    for(var i=1; i<=skip; i++) sphere.RungeKutta(); 
+    t += dt * skip;
+		sphere.object.position.set(sphere.x, sphere.y, sphere.z); 
+		camera.lookAt( {x:0, y:0, z:100 } ); // これで回る		
+		renderer.clear();
+		renderer.render(scene, camera);
+		window.requestAnimationFrame(loop);
+  }  
+
+  var down = false;
+  var sy = 0, sz = 0;
+  window.onmousedown = function (ev){    //マウスダウン
+    if (ev.target == renderer.domElement) { 
+      down = true;
+      sy = ev.clientX; sz = ev.clientY;
+    }
+  };
+  window.onmouseup = function(){        //マウスアップ
+    down = false; 
+  };
+  window.onmousemove = function(ev) {   //マウスムーブ
+    var speed = 2;
+    if (down) {
+        if (ev.target == renderer.domElement) { 
+        var dy = -(ev.clientX - sy);
+        var dz = -(ev.clientY - sz);
+        camera.position.y += dy*speed;
+        camera.position.z -= dz*speed;
+        sy -= dy;
+        sz -= dz;
+      }
+    }
+  }
+  window.onmousewheel = function(ev){   //マウスホイール
+    var speed = 0.2;    
+    camera.position.x += ev.wheelDelta * speed ; 
+  }
+  
+  function threeStart() {
+    initThree();
+    initCamera();
+    initScene();    
+    initLight();
+    initObject();
+    loop();
+  }
+
+	//////////////////////////////////////////////////////////////////////////////////
+	// ボールが落下するコード
+	//////////////////////////////////////////////////////////////////////////////////
+  Sphere.prototype.fx = function(t, x, y, z, vx, vy, vz){
+    return vx;
+  }
+  Sphere.prototype.fvx = function(t, x, y, z, vx, vy, vz){
+  var l2 = Math.pow(x,2)  + Math.pow(y,2)  + Math.pow(z,2);
+  var v2 = Math.pow(vx,2) + Math.pow(vy,2) + Math.pow(vz,2);
+  return (g*z-v2) * x / l2 ;
+	}
+	Sphere.prototype.fy = function(t, x, y, z, vx, vy, vz){
+	  return vy;
+	}
+	Sphere.prototype.fvy = function(t, x, y, z, vx, vy, vz){
+		var l2 = Math.pow(x,2)  + Math.pow(y,2)  + Math.pow(z,2);
+		var v2 = Math.pow(vx,2) + Math.pow(vy,2) + Math.pow(vz,2);
+		return (g*z-v2) * y / l2 ;
+	}
+	Sphere.prototype.fz = function(t, x, y, z, vx, vy, vz){
+	  return vz;
+	}
+	Sphere.prototype.fvz = function(t, x, y, z, vx, vy, vz){
+		var l2 = Math.pow(x,2)  + Math.pow(y,2)  + Math.pow(z,2);
+		var v2 = Math.pow(vx,2) + Math.pow(vy,2) + Math.pow(vz,2);
+		return -g + (g*z-v2) * z / l2 ;
+	}
+	Sphere.prototype.RungeKutta = function(){
+	  var k1 = new Array(6);
+	  var k2 = new Array(6);
+	  var k3 = new Array(6);
+	  var k4 = new Array(6);
+    
+    // x, y, z のとりかたで様々な動きが取れそう
+    // これをいじると動くっぽい
+	  var x = this.x - 1;
+	  var y = this.y - 1;  
+    var z = this.z;
+    
+    // vx = +1
+    // vy = -1
+    // vz = -a で螺旋に収束する
+	  var vx = this.vx + 1;
+	  var vy = this.vy - 1;  
+	  var vz = this.vz - 1;  
+	  k1[0]=dt*this.fx(t,x,y,z,vx,vy,vz);
+	  k1[1]=dt*this.fvx(t,x,y,z,vx,vy,vz);
+	  k1[2]=dt*this.fy(t,x,y,z,vx,vy,vz);
+	  k1[3]=dt*this.fvy(t,x,y,z,vx,vy,vz);
+	  k1[4]=dt*this.fz(t,x,y,z,vx,vy,vz);
+	  k1[5]=dt*this.fvz(t,x,y,z,vx,vy,vz);
+	  k2[0]=dt*this.fx(t+dt/2.0, x+k1[0]/2.0,y+k1[2]/2.0,z+k1[4]/2.0,vx+k1[1]/2.0,vy+k1[3]/2.0,vz+k1[5]/2.0);
+	  k2[1]=dt*this.fvx(t+dt/2.0,x+k1[0]/2.0,y+k1[2]/2.0,z+k1[4]/2.0,vx+k1[1]/2.0,vy+k1[3]/2.0,vz+k1[5]/2.0);
+	  k2[2]=dt*this.fy(t+dt/2.0, x+k1[0]/2.0,y+k1[2]/2.0,z+k1[4]/2.0,vx+k1[1]/2.0,vy+k1[3]/2.0,vz+k1[5]/2.0);
+	  k2[3]=dt*this.fvy(t+dt/2.0,x+k1[0]/2.0,y+k1[2]/2.0,z+k1[4]/2.0,vx+k1[1]/2.0,vy+k1[3]/2.0,vz+k1[5]/2.0);
+	  k2[4]=dt*this.fz(t+dt/2.0, x+k1[0]/2.0,y+k1[2]/2.0,z+k1[4]/2.0,vx+k1[1]/2.0,vy+k1[3]/2.0,vz+k1[5]/2.0);
+	  k2[5]=dt*this.fvz(t+dt/2.0,x+k1[0]/2.0,y+k1[2]/2.0,z+k1[4]/2.0,vx+k1[1]/2.0,vy+k1[3]/2.0,vz+k1[5]/2.0);
+	  k3[0]=dt*this.fx(t+dt/2.0, x+k2[0]/2.0,y+k2[2]/2.0,z+k2[4]/2.0,vx+k2[1]/2.0,vy+k2[3]/2.0,vz+k2[5]/2.0);
+	  k3[1]=dt*this.fvx(t+dt/2.0,x+k2[0]/2.0,y+k2[2]/2.0,z+k2[4]/2.0,vx+k2[1]/2.0,vy+k2[3]/2.0,vz+k2[5]/2.0);
+	  k3[2]=dt*this.fy(t+dt/2.0, x+k2[0]/2.0,y+k2[2]/2.0,z+k2[4]/2.0,vx+k2[1]/2.0,vy+k2[3]/2.0,vz+k2[5]/2.0);
+	  k3[3]=dt*this.fvy(t+dt/2.0,x+k2[0]/2.0,y+k2[2]/2.0,z+k2[4]/2.0,vx+k2[1]/2.0,vy+k2[3]/2.0,vz+k2[5]/2.0);
+	  k3[4]=dt*this.fz(t+dt/2.0, x+k2[0]/2.0,y+k2[2]/2.0,z+k2[4]/2.0,vx+k2[1]/2.0,vy+k2[3]/2.0,vz+k2[5]/2.0);
+	  k3[5]=dt*this.fvz(t+dt/2.0,x+k2[0]/2.0,y+k2[2]/2.0,z+k2[4]/2.0,vx+k2[1]/2.0,vy+k2[3]/2.0,vz+k2[5]/2.0);
+	  k4[0]=dt*this.fx(t+dt/2.0, x+k3[0],y+k3[2],z+k3[4],vx+k3[1],vy+k3[3],vz+k3[5]);
+	  k4[1]=dt*this.fvx(t+dt/2.0,x+k3[0],y+k3[2],z+k3[4],vx+k3[1],vy+k3[3],vz+k3[5]);
+	  k4[2]=dt*this.fy(t+dt/2.0, x+k3[0],y+k3[2],z+k3[4],vx+k3[1],vy+k3[3],vz+k3[5]);
+	  k4[3]=dt*this.fvy(t+dt/2.0,x+k3[0],y+k3[2],z+k3[4],vx+k3[1],vy+k3[3],vz+k3[5]);
+	  k4[4]=dt*this.fz(t+dt/2.0, x+k3[0],y+k3[2],z+k3[4],vx+k3[1],vy+k3[3],vz+k3[5]);
+	  k4[5]=dt*this.fvz(t+dt/2.0,x+k3[0],y+k3[2],z+k3[4],vx+k3[1],vy+k3[3],vz+k3[5]);
+	  this.x  +=  (k1[0]+2.0*k2[0]+2.0*k3[0]+k4[0])/6.0;
+	  this.vx +=  (k1[1]+2.0*k2[1]+2.0*k3[1]+k4[1])/6.0;
+	  this.y  +=  (k1[2]+2.0*k2[2]+2.0*k3[2]+k4[2])/6.0;
+	  this.vy +=  (k1[3]+2.0*k2[3]+2.0*k3[3]+k4[3])/6.0;
+	  this.z  +=  (k1[4]+2.0*k2[4]+2.0*k3[4]+k4[4])/6.0;
+	  this.vz +=  (k1[5]+2.0*k2[5]+2.0*k3[5]+k4[5])/6.0;
+	}
+	//ルンゲクッタ終わり
+	///////////////////////////////////////////////////////////////////////
+</script>
+</head>
+ 
+<body onload="threeStart();">
+  <nav class="navbar navbar-expand-lg navbar-light bg-transparent" id = "navbar">
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="index.html">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="sample5.html">作品1</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="sample6.html">作品2</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="sample7.html">作品3</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+<div id="canvas-frame"></div>
+</body>
+</html>

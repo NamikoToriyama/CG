@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <!-- ボールが跳ねる
+    参考：https://qiita.com/ayana_shi/items/c88dece936c7893b3543 -->
+  <meta charset="utf-8" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.min.js"></script>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  <link rel="stylesheet" href="css/sample.css">
+
+  <script>
+    // ページの読み込みを待つ
+    window.addEventListener('load', init);
+    var g = 9.8; var m = 1;
+    var width, height;
+    var renderer;
+    function initThree() {
+      // サイズを指定
+      width = window.innerWidth;
+      height = window.innerHeight - document.getElementById("navbar").clientHeight;
+
+      // レンダラーを作成
+      renderer = new THREE.WebGLRenderer({
+        canvas: document.querySelector('#myCanvas')
+      });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(width, height);
+      renderer.setClearColor(0xffffff, 1.0);
+      renderer.shadowMapEnabled = true;
+    }
+
+    var scene;
+    function initScene() {
+      // シーンを作成
+      scene = new THREE.Scene();
+    }
+
+    var camera;
+    function initCamera() {
+      // カメラを作成
+      camera = new THREE.PerspectiveCamera(45, width / height);
+      camera.position.set(-300, 200, 40);
+      camera.lookAt(new THREE.Vector3(0, 0, 0));
+    }
+
+    var light;
+    function initLight() {
+      // 光を作成
+      light = new THREE.DirectionalLight(0xFFFFFF, 2.0, 0);
+      light.position.set(-150, 300, 10);
+      scene.add(light);
+      // 一つだともう一方の壁が照らされなかったため、光源を増やす
+      light.position.set(-150, 300, 100);
+      // light.castShadow = true;
+      scene.add(light);
+    }
+
+    var sphere;
+    function initObject() {
+      // 床を作成
+      var texture2 = new THREE.ImageUtils.loadTexture('imgs/woods.jpg');
+      const meshFloor = new THREE.Mesh(
+        new THREE.BoxGeometry(500, 0.1, 500),
+        new THREE.MeshStandardMaterial({
+          color: 0x808080,
+          map: texture2,
+          roughness: 0.05
+        })
+      );
+      meshFloor.position.set(0, -30, 0);
+      scene.add(meshFloor);
+      meshFloor.receiveShadow = true;
+
+      // 寂しいので壁もおく
+      var texture_kabe = new THREE.ImageUtils.loadTexture('imgs/kabe.jpg');
+      const wall1 = new THREE.Mesh(
+        new THREE.BoxGeometry(250, 0.1, 500),
+        new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          map: texture_kabe,
+          roughness: 0.05
+        })
+      );
+      wall1.position.set(250, -30 + 125, 0);
+      wall1.rotation.set(0, 0, Math.PI / 2);
+      scene.add(wall1);
+
+      const wall2 = new THREE.Mesh(
+        new THREE.BoxGeometry(500, 0.1, 250),
+        new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          map: texture_kabe,
+          roughness: 0.05
+        })
+      );
+      wall2.position.set(0, -30 + 125, -250);
+      wall2.rotation.set(Math.PI / 2, 0, 0);
+      scene.add(wall2);
+
+
+      // オブジェクトを作成
+      // 球体のオブジェクト
+      var texture1 = new THREE.ImageUtils.loadTexture('imgs/kin.jpeg');
+      sphere = new THREE.Mesh(
+        new THREE.SphereGeometry(30, 30, 30),     // ここで形を指定         
+        new THREE.MeshLambertMaterial({ color: 0xaaaaaa, map: texture1 }) // ここで色を指定
+      );
+      scene.add(sphere);
+      sphere.rotation.set(0, 0, Math.PI / 2);
+      sphere.position.set(0, 80, 0);
+      sphere.castShadow = true;
+
+      setting();
+    }
+
+    var y, g, v, t, e;
+    var yb = 100;
+    function setting() {
+      y = sphere.position.y;  //距離
+      g = -9.8;  //重力加速度
+      v = 0.0;  //速度 
+      t = 0.15;  //時間
+      e = -0.6;  //反発係数
+      tick();
+    }
+
+    // 毎フレーム時に実行されるループイベント
+    var requestID = 0;
+    function tick() {
+      renderer.clear();
+      t += 0.001;
+      v += g * t;
+      y += v * t;
+      // ボールの位置を変える
+      var x = sphere.position.x;
+      var z = sphere.position.z;
+      // 沈むのを防止する
+      if (t > 0.5){
+        sphere.position.set(0, 0, 0);
+      } else {
+        sphere.position.set(x, y, z);
+      }
+      scene.add(sphere);
+
+      // 床に着いたら跳ねるようにする
+      if (y < 0) {
+        y = 0;
+        v *= e;
+      }
+      
+
+      renderer.render(scene, camera);
+      camera.lookAt(new THREE.Vector3(0, 0, 0));
+      requestID = requestAnimationFrame(tick);
+    }
+
+    function reset() {
+      cancelAnimationFrame(requestID);
+      // だんだん高くなる
+      yb += 50;
+      sphere.position.y = yb;
+      setting();
+    }
+
+    function init() {
+      initThree();
+      initCamera();
+      initScene();
+      initLight();
+      initObject();
+      renderer.clear();
+      renderer.render(scene, camera);
+    }
+
+    var down = false;
+    var sy = 0, sz = 0;
+    window.onmousedown = function (ev) {    //マウスダウン
+      if (ev.target == renderer.domElement) {
+        down = true;
+        sy = ev.clientX; sz = ev.clientY;
+      }
+    };
+    window.onmouseup = function () {        //マウスアップ
+      down = false;
+    };
+    window.onmousemove = function (ev) {   //マウスムーブ
+      var speed = 2;
+      if (down) {
+        if (ev.target == renderer.domElement) {
+          var dy = -(ev.clientX - sy);
+          var dz = -(ev.clientY - sz);
+          camera.position.y += dy * speed;
+          camera.position.z -= dz * speed;
+          sy -= dy;
+          sz -= dz;
+        }
+      }
+    }
+    window.onmousewheel = function (ev) {   //マウスホイール
+      var speed = 0.2;
+      camera.position.x += ev.wheelDelta * speed;
+    }
+
+  </script>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light bg-light" id="navbar">
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="index.html">Home <span class="sr-only">(current)</span></a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="sample5.html">作品1</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="sample6.html">作品2</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="sample7.html">作品3</a>
+        </li>
+        <button class="btn btn-outline-success my-2 my-sm-0" onclick="reset()">Reset</button>
+      </ul>
+    </div>
+  </nav>
+  <div id="content">
+    <canvas id="myCanvas"></canvas>
+  </div>
+</body>
+
+</html>

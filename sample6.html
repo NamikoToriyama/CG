@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/sample.css">
+    <script>
+      // ページの読み込みを待つ
+      window.addEventListener('load', init);
+
+      function init() {
+        // サイズを指定
+        const width = window.innerWidth;
+        const height = window.innerHeight - document.getElementById("navbar").clientHeight;
+
+        // レンダラーを作成
+        const renderer = new THREE.WebGLRenderer({
+          canvas: document.querySelector('#myCanvas')
+        });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(width, height);
+
+        // シーンを作成
+        const scene = new THREE.Scene();
+
+        // カメラを作成
+        const camera = new THREE.PerspectiveCamera(45, width / height);
+        camera.position.set(20, 20, 20);
+        camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+        // 床を作成
+        const meshFloor = new THREE.Mesh(
+          new THREE.BoxGeometry(2000, 0.1, 2000),
+          new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.0 })
+        );
+        scene.add(meshFloor);
+
+        // オブジェクトを作成
+        const meshKnot = new THREE.Mesh(
+          new THREE.OctahedronBufferGeometry(4, 0),
+          new THREE.MeshStandardMaterial({ color: "gba(255,165,0)", roughness: 0.5 })
+        );
+        meshKnot.position.set(0, 5, 0);
+        scene.add(meshKnot);
+
+        // 光源を作成
+        // new THREE.PointLight(色, 光の強さ, 距離, 光の減衰率)
+        const light1 = new THREE.PointLight(0xff00ff, 4, 50, 1.0);
+        scene.add(light1);
+
+        const light2 = new THREE.PointLight(0xffff00, 5, 50, 1.0);
+        scene.add(light2);
+
+        const light3 = new THREE.PointLight(0x00ffff, 4, 50, 1.0);
+        scene.add(light3);
+
+        tick();
+
+        // 毎フレーム時に実行されるループイベント
+        function tick() {
+          // レンダリング
+          renderer.clear();
+
+          // 照明の位置を更新
+          var t = Date.now() / 500;
+          var r = 12.0;
+          var lx = r * Math.cos(t);
+          var lz = r * Math.sin(t);
+          var ly = 6.0 + 5.0 * Math.sin(t / 3.0);
+          light1.position.set(lx+10, ly, lz);
+
+          t = Date.now() / 800;
+          r = 10.0;
+          lx = r * Math.cos(t);
+          lz = r * Math.sin(t);
+          ly = 6.0 + 5.0 * Math.sin(t / 3.0);
+          light2.position.set(lx, ly, lz+10);
+
+          t = Date.now() / 400;
+          r = 20.0;
+          lx = r * Math.cos(t);
+          lz = r * Math.sin(t);
+          ly = 6.0 + 5.0 * Math.sin(t / 3.0);
+          light3.position.set(lx, ly + 20, lz);
+
+          light1.lookAt(new THREE.Vector3(0, 0, 0));
+          light2.lookAt(new THREE.Vector3(0, 0, 0));
+          light3.lookAt(new THREE.Vector3(0, 0, 0));
+          camera.position.set( 20*Math.cos(t/10), 10*Math.sin(t/20) + 15, 40*Math.cos(t/50));
+          camera.lookAt(new THREE.Vector3(0, 0, 0));
+          renderer.render(scene, camera);
+          requestAnimationFrame(tick);
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-transparent" id = "navbar">
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item active">
+            <a class="nav-link" href="index.html">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="sample5.html">作品1</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="sample6.html">作品2</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="sample7.html">作品3</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+    <div id="content">
+      <canvas id="myCanvas"></canvas>
+    </div>
+  </body>
+</html>

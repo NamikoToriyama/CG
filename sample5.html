@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/sample.css">
+    <style type="text/css">
+      body{
+        background-color: #000000;
+      }
+      div#canvas-frame{
+        border: none;
+        cursor: pointer;
+        background-color: #00004f;
+      }
+      </style>   
+    <script>
+      var startTime = new Date();
+      var SEGX=32;
+      var SEGY=32;
+      var renderer;
+      function initThree() {
+        width = window.innerWidth;
+        height = window.innerHeight - document.getElementById("navbar").clientHeight;
+        renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setSize(width, height );
+        document.getElementById('canvas-frame').appendChild(renderer.domElement);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setClearColor(0x000000, 1.0);
+      }
+
+      // シーンを作成
+      var scene;
+      function initScene() {    
+        scene = new THREE.Scene();
+      }
+  
+      var light;
+      function initLight() {  
+        light = new THREE.DirectionalLight(0xFFFFFF, 1.0, 0);
+        light.position.set( 100, 100, 200 );
+        scene.add(light);   
+        // 点光源を作成
+        // new THREE.PointLight(色, 光の強さ, 距離, 光の減衰率)
+        const moon = new THREE.PointLight(0xFFFFFF, 5, 500, 1.0);
+        moon.position.set( 10, 10, 100 );
+        scene.add(moon);
+
+      }
+
+      // カメラを作成
+      var camera;
+      function initCamera() {  
+        camera = new THREE.PerspectiveCamera( 120 , width / height , 1 , 10000 );
+        camera.position.x = 200;
+        camera.position.y = -400;
+        camera.position.z = 100;
+        camera.up.x = 0;
+        camera.up.y = 0;
+        camera.up.z = 1;
+        camera.lookAt( {x:0, y:0, z:0 } );
+      }
+
+      function make_star(filename, num){
+        var texture = new THREE.ImageUtils.loadTexture(filename);
+        var material = new THREE.SpriteMaterial({
+          map: texture
+        });
+        material.fog = true;
+        for (let i = 0; i < num; i++) {
+          const sprite = new THREE.Sprite(material);
+          // ランダムな座標に配置
+          sprite.position.x = -1300/2 + 1300 * (Math.random());
+          sprite.position.y = -1228/2 + 1228 * Math.random();
+          sprite.position.z = 1000 * (Math.random()) + 50;
+          // 必要に応じてスケールを調整
+          var r = Math.random();
+          sprite.scale.set(15*r, 15*r, 15*r);
+
+          scene.add(sprite);
+        }
+      }
+
+      var star_light, lightHelper, star_r;
+      function initObject(){  
+        // 星(黄)を配置する
+        make_star('imgs/star_y.png', 800);
+        
+        // 星(赤)を配置する
+        texture = new THREE.ImageUtils.loadTexture('imgs/star2.png');
+        material = new THREE.SpriteMaterial({
+          map: texture
+        });
+        material.fog = true;
+        for (let i = 0; i < 50; i++) {
+          const sprite = new THREE.Sprite(material);
+          sprite.position.x = -1300/2 + 1300 * (Math.random());
+          sprite.position.y = -1228/2 + 1228 * Math.random();
+          sprite.position.z = 400 * (Math.random()) + 600;
+          var r = Math.random();
+          sprite.scale.set(10*r, 10*r, 10*r);
+          scene.add(sprite);
+        }
+
+        // 星(緑)を配置する
+        make_star('imgs/star3.png', 200);
+
+        // 流れ星を配置する
+        star_light = new THREE.PointLight(0xffffff, 20, 50, 1.5);
+        star_light.position.set(-1000, -1000, 500);
+        star_r = Math.sqrt(Math.pow(1000, 2)+Math.pow(1500,2)+Math.pow(500,2));
+        star_light.fog = true;
+        scene.add(star_light);
+
+        // 照明を可視化するヘルパー
+        var sphereSize = 13;
+        lightHelper = new THREE.PointLightHelper(star_light, sphereSize);
+        lightHelper.scale.set(1000);
+        scene.add(lightHelper);
+
+        // 地面を配置する
+        var texture2 = new THREE.ImageUtils.loadTexture('imgs/image1.jpg'); 
+        var geometry2 = new THREE.PlaneGeometry(1300, 1228, SEGX, SEGY);
+        var material2 = new THREE.MeshLambertMaterial({map:texture2});
+        plane = new THREE.Mesh(geometry2, material2);
+        plane.rotation.set(0,0, -Math.PI/6); 
+        scene.add(plane); 
+        loop();    
+    }
+
+    // 流れ星の中心座標
+    var cnt = 0;
+    var flag = false;
+
+    function loop() {
+      var time = (new Date() - startTime)/5000;
+      plane.geometry.verticesNeedUpdate=true;
+      for (var i=0;i<SEGX+1;i++) {
+    	for (var j=0;j<SEGY+1;j++) {
+    		var index = j * (SEGX + 1) + i % (SEGX + 1);
+              var vertex = plane.geometry.vertices[index];
+    		vertex.z = 10 * Math.sin( -i*20 + time*10);
+    	}			
+    }
+
+    // 毎回は流れすぎなのでランダムにさせる
+    if(new Date() % 97 == 0){
+      flag = true;
+      cnt = 0;
+    }
+    // 流れ星を流す
+    if (flag){
+      cnt++;
+      var x = -star_r*Math.cos(time*7);
+      var y = star_r*Math.sin(time*7);
+      star_light.position.set(Math.sqrt(x^2 + y^2), x, y + 200);
+      scene.add(star_light);	 
+      renderer.clear();
+    }
+    if (cnt == 250){ 
+      flag = false;
+      scene.remove(star_light);//シーンから削除		
+      renderer.clear();
+    }
+    
+
+    // カメラの自動移動
+    camera.position.x = 100 * Math.sin(Date.now() / 4500);
+    camera.position.z = 100 * Math.cos(Date.now() / 3000);
+    camera.position.y = 50 * Math.sin(Date.now() / 2000);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+    // camera.lookAt( {x:0, y:0, z:100 } ); // これで回る		
+    renderer.render(scene, camera);
+
+    requestAnimationFrame(loop);
+  }
+
+  var down = false;
+  var sy = 0, sz = 0;
+  window.onmousedown = function (ev){    //マウスダウン
+    if (ev.target == renderer.domElement) { 
+      down = true;
+      sy = ev.clientX; sz = ev.clientY;
+    }
+  };
+  window.onmouseup = function(){        //マウスアップ
+    down = false; 
+  };
+  window.onmousemove = function(ev) {   //マウスムーブ
+    var speed = 2;
+    if (down) {
+        if (ev.target == renderer.domElement) { 
+        var dy = -(ev.clientX - sy);
+        var dz = -(ev.clientY - sz);
+        camera.position.y += dy*speed;
+        camera.position.z -= dz*speed;
+        sy -= dy;
+        sz -= dz;
+      }
+    }
+  }
+  window.onmousewheel = function(ev){   //マウスホイール
+    var speed = 0.2;    
+    camera.position.x += ev.wheelDelta * speed ; 
+  }
+
+ function threeStart() {
+  initThree();
+  initCamera();
+  initScene();    
+  initLight();
+  initObject();
+  renderer.clear();  
+  renderer.render(scene, camera);
+}
+</script>
+</head>
+
+<body onload="threeStart();">
+  <nav class="navbar navbar-expand-lg navbar-light bg-light" id="navbar">
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="index.html">Home <span class="sr-only">(current)</span></a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="sample5.html">作品1</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="sample6.html">作品2</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="sample7.html">作品3</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+  <div id="canvas-frame"></div>
+
+
+</body>
+</html>
